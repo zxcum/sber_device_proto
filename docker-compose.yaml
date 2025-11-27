@@ -1,0 +1,38 @@
+services:
+  db:
+      container_name: db
+      image: postgres:16
+      environment:
+        - POSTGRES_DB=${DB_NAME}
+        - POSTGRES_USER=${DB_USER}
+        - POSTGRES_PASSWORD=${DB_PASS}
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+      ports:
+        - "5433:5432"
+      restart: always
+  app:
+    build: .
+    container_name: kids_helper_app
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+  ngrok:
+    image: ngrok/ngrok
+    container_name: ngrok_tunnel
+    env_file:
+      - .env                    
+    command: http app:8000   
+    ports:
+      - "4040:4040"             
+    depends_on:
+      - app
+    restart: unless-stopped
